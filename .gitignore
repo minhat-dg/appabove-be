@@ -1,0 +1,84 @@
+### Java ###
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs
+*.log
+
+# BlueJ files
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Virtual machine crash logs
+hs_err_pid*
+
+### Maven ###
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+### Gradle ###
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+
+### IDE ###
+.idea/
+*.iml
+*.ipr
+*.iws
+*.sw?
+
+# VS Code
+.vscode/
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Environment Files ###
+.env
+*.env.*
+
+### Test Coverage ###
+coverage/
+jacoco.exec
+
+### Database ###
+*.h2.db
+*.mv.db
+
+### Other ###
+*.log
+logs/
+tmp/
+*.tmp
+
+# Ignore local settings
+application-local.properties
+application-dev.properties
+
+# Docker
+docker-compose.override.yml
+.docker/
