@@ -1,17 +1,15 @@
 package com.appabove.app.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "app_group",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"app_id", "group_name"})
-        }
-)
+@Table(name = "app_group", uniqueConstraints = {@UniqueConstraint(columnNames = {"app_id", "group_name"})})
 public class Group {
     @Id
     private String groupId;
@@ -23,6 +21,10 @@ public class Group {
     @JsonBackReference
     @JoinColumn(name = "app_id")
     private App app;
+
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<UploadedFile> files = new ArrayList<>();
 
     public Group() {
     }

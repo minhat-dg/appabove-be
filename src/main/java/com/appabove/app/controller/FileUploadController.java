@@ -1,17 +1,13 @@
 package com.appabove.app.controller;
 
-import com.appabove.app.dto.BaseResponse;
-import com.appabove.app.dto.GetAllFilesResponse;
+import com.appabove.app.dto.*;
 import com.appabove.app.model.Group;
 import com.appabove.app.model.UploadedFile;
 import com.appabove.app.service.FileUploadService;
 import com.appabove.app.service.GroupService;
 import com.appabove.app.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -75,6 +71,18 @@ public class FileUploadController {
         response.setFiles(files);
         response.setGroupName(group.getGroupName());
         response.setAppIconUrl(group.getApp().getIconUrl());
+        return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.success(messageService.get("successfully"), response));
+    }
+
+    @PostMapping("/upload-url")
+    public ResponseEntity<BaseResponse<GetUploadUrlResponse>> getUploadUrl(@RequestBody GetUploadUrlRequest request) throws IOException {
+        GetUploadUrlResponse response = fileUploadService.getUploadUrl(request.getFileName(), request.getGroupId());
+        return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.success(messageService.get("successfully"), response));
+    }
+
+    @PostMapping("/finalize-upload")
+    public ResponseEntity<BaseResponse<UploadedFile>> finalizeUpload(@RequestBody FinalizeUploadRequest request) throws IOException {
+        UploadedFile response = fileUploadService.getFileMetaData(request.getId());
         return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.success(messageService.get("successfully"), response));
     }
 }

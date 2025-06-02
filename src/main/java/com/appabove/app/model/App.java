@@ -16,6 +16,10 @@ public class App {
 
     private String iconUrl;
 
+    @OneToMany(mappedBy = "app", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<Group> groups = new ArrayList<>();
+
     public App() {
     }
 

@@ -1,19 +1,29 @@
-version: '3.8'
+version: '3.3'
 
 services:
   db:
     image: mysql:9
     environment:
       MYSQL_DATABASE: appabovedb
-      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_ROOT_PASSWORD: La@123465
     ports:
-      - "3307:3306"
+      - "3407:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+#  app:
+#    image: appabove-be-app:latest
+#    ports:
+#      - "9119:8080"
+#    depends_on:
+#      - db
+#    env_file:
+#      - .env
+
+#For local
   app:
     build: .
     ports:

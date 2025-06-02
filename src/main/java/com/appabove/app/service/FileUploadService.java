@@ -1,5 +1,6 @@
 package com.appabove.app.service;
 
+import com.appabove.app.dto.GetUploadUrlResponse;
 import com.appabove.app.dto.UploadResult;
 import com.appabove.app.model.Group;
 import com.appabove.app.model.UploadedFile;
@@ -80,10 +81,94 @@ public class FileUploadService {
 
         String iconUrl = group.getApp().getIconUrl();
         if ((iconUrl == null || iconUrl.isBlank()) && "apk".equalsIgnoreCase(fileType)) {
-            saveAppIcon(file, group);
+            File buildFile = FileUtils.multipartToFile(file, ".ipa");
+            try {
+                saveAppIcon(buildFile, group);
+            } finally {
+                buildFile.delete();
+            }
         }
 
         return fileUploadRepository.save(uploaded);
+    }
+
+    public GetUploadUrlResponse getUploadUrl(String fileName, String groupId) throws IOException {
+        Group group = groupRepository.findById(groupId).orElseThrow(() -> new RuntimeException(messageService.get("group.not.found")));
+
+        String id = UUID.randomUUID().toString();
+        UploadedFile uploaded = new UploadedFile();
+        uploaded.setId(id);
+        uploaded.setFileName(fileName);
+        uploaded.setGroup(group);
+        String fileType = FilenameUtils.getExtension(fileName).toLowerCase(Locale.ROOT);
+        String filePath = switch (fileType) {
+            case "ipa" -> ipaDir + "/" + id + "/" + fileName;
+            case "apk" -> apkDir + "/" + id + "/" + fileName;
+            default -> throw new RuntimeException(messageService.get("file.type.unsupported"));
+        };
+        String downloadUrl = bunnyStorageService.getPublicUrl(filePath);
+        uploaded.setFileType(fileType);
+        uploaded.setDownloadUrl(downloadUrl);
+        fileUploadRepository.save(uploaded);
+        return bunnyStorageService.getUploadInfo(filePath, id);
+    }
+
+    public UploadedFile getFileMetaData(String id) throws IOException {
+        UploadedFile file = fileUploadRepository.findById(id).orElseThrow(() -> new RuntimeException(messageService.get("file.not.found")));
+        File downloadFile = FileUtils.downloadFile(file.getDownloadUrl());
+        try {
+            file.setSize(downloadFile.length());
+            file.setUploadTime(LocalDateTime.now());
+            UploadResult result;
+            switch (file.getFileType()) {
+                case "ipa":
+                    result = getIpaInfo(downloadFile, file);
+                    break;
+                case "apk":
+                    result = getApkInfo(downloadFile, file);
+                    break;
+                default:
+                    throw new RuntimeException(messageService.get("file.type.unsupported"));
+            }
+            file.setDownloadUrl(result.downloadUrl());
+            file.setVersion(result.version());
+
+            String iconUrl = file.getGroup().getApp().getIconUrl();
+            if ((iconUrl == null || iconUrl.isBlank()) && "apk".equalsIgnoreCase(file.getFileType())) {
+                saveAppIcon(downloadFile, file.getGroup());
+            }
+        } finally {
+            downloadFile.delete();
+        }
+        return fileUploadRepository.save(file);
+    }
+
+    private UploadResult getApkInfo(File apkFile, UploadedFile file) throws IOException {
+        String downloadUrl, version;
+        Map<String, String> metadata = IpaUtils.extractIpaMetadata(apkFile);
+        version = metadata.get("version");
+        downloadUrl = file.getDownloadUrl();
+        return new UploadResult(downloadUrl, version);
+    }
+
+    private UploadResult getIpaInfo(File ipaFile, UploadedFile file) throws IOException {
+        String downloadUrl, version;
+        Map<String, String> metadata = IpaUtils.extractIpaMetadata(ipaFile);
+        version = metadata.get("version");
+
+        // Tạo manifest plist file
+        String plistFileName = plistDir + "/" + file.getId() + ".plist";
+        String plistUrl = bunnyStorageService.getPublicUrl(plistFileName);
+        String plistContent = IpaUtils.generatePlistContent(file.getDownloadUrl(), metadata);
+        File plistFile = FileUtils.writeStringToFile(plistContent);
+        try {
+            bunnyStorageService.uploadFile(plistFileName, plistFile);
+        } finally {
+            plistFile.delete();
+        }
+
+        downloadUrl = "itms-services://?action=download-manifest&url=" + plistUrl;
+        return new UploadResult(downloadUrl, version);
     }
 
     private UploadResult handleIpaUpload(MultipartFile file, String fileName, String id) throws IOException {
@@ -132,24 +217,19 @@ public class FileUploadService {
         return new UploadResult(downloadUrl, version);
     }
 
-    public void saveAppIcon(MultipartFile apkFile, Group group) throws IOException {
-        File buildFile = FileUtils.multipartToFile(apkFile, ".apk");
-        try {
-            BufferedImage icon = ApkUtils.extractIconFromApk(buildFile);
-            if (icon != null) {
-                String iconFileName = iconDir + "/" + group.getApp().getAppName() + ".png";
-                String iconUrl = bunnyStorageService.getPublicUrl(iconFileName);
-                File iconFile = FileUtils.writeImageToFile(icon);
-                try {
-                    bunnyStorageService.uploadFile(iconFileName, iconFile);
-                } finally {
-                    iconFile.delete();
-                }
-                group.getApp().setIconUrl(iconUrl);
-                appRepository.save(group.getApp());
+    public void saveAppIcon(File apkFile, Group group) throws IOException {
+        BufferedImage icon = ApkUtils.extractIconFromApk(apkFile);
+        if (icon != null) {
+            String iconFileName = iconDir + "/" + group.getApp().getAppName() + ".png";
+            String iconUrl = bunnyStorageService.getPublicUrl(iconFileName);
+            File iconFile = FileUtils.writeImageToFile(icon);
+            try {
+                bunnyStorageService.uploadFile(iconFileName, iconFile);
+            } finally {
+                iconFile.delete();
             }
-        } finally {
-            buildFile.delete();
+            group.getApp().setIconUrl(iconUrl);
+            appRepository.save(group.getApp());
         }
     }
 

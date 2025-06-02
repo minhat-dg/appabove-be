@@ -1,5 +1,6 @@
 package com.appabove.app.service;
 
+import com.appabove.app.dto.GetUploadUrlResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -68,5 +69,25 @@ public class BunnyStorageService {
     public String getPublicUrl(String fileName) {
         return String.format("https://%s/%s", bunnyHostName, fileName);
     }
+
+    public GetUploadUrlResponse getUploadInfo(String fileName, String id) throws IOException {
+        String url = String.format("https://%s/%s/%s", bunnyEndPoint, bunnyStorageZone, fileName);
+        return new GetUploadUrlResponse(url, bunnyAccessKey, id);
+    }
+
+    public void deleteFile(String path) throws IOException {
+        String url = String.format("https://%s/%s", bunnyEndPoint, path);
+
+        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+        conn.setRequestMethod("DELETE");
+        conn.setRequestProperty("AccessKey", bunnyAccessKey);
+
+        int responseCode = conn.getResponseCode();
+        if (responseCode != 200 && responseCode != 204) {
+            String error = new String(conn.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
+            throw new IOException("Delete failed: HTTP " + responseCode + "\n" + error);
+        }
+    }
+
 }
 
