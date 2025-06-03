@@ -4,10 +4,10 @@ import com.appabove.app.model.App;
 import com.appabove.app.model.Group;
 import com.appabove.app.repository.AppRepository;
 import com.appabove.app.repository.GroupRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -16,12 +16,14 @@ public class GroupService {
 
     private final GroupRepository groupRepository;
     private final AppRepository appRepository;
-    @Autowired
     private MessageService messageService;
+    private BunnyStorageService bunnyStorageService;
 
-    public GroupService(GroupRepository groupRepository, AppRepository appRepository) {
+    public GroupService(GroupRepository groupRepository, AppRepository appRepository, MessageService messageService, BunnyStorageService bunnyStorageService) {
         this.groupRepository = groupRepository;
         this.appRepository = appRepository;
+        this.messageService = messageService;
+        this.bunnyStorageService = bunnyStorageService;
     }
 
     public Group createGroup(String groupName, String appId) {
@@ -30,8 +32,8 @@ public class GroupService {
         }
 
         App app = appRepository.findById(appId).orElseThrow(() -> new IllegalArgumentException(messageService.get("app.not.found", appId)));
-
         Group group = new Group(groupName, app);
+        group.setStoragePath(app.getStoragePath() + group.getGroupId());
         return groupRepository.save(group);
     }
 
@@ -45,10 +47,11 @@ public class GroupService {
     }
 
 
-    public void deleteGroupById(String id) {
+    public void deleteGroupById(String id) throws IOException {
         if (!groupRepository.existsById(id)) {
             throw new IllegalArgumentException(messageService.get("group.not.found", id));
         }
+        bunnyStorageService.deleteFile(getGroup(id).getStoragePath());
         groupRepository.deleteById(id);
     }
 

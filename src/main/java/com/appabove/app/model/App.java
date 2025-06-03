@@ -16,6 +16,8 @@ public class App {
 
     private String iconUrl;
 
+    private String storagePath;
+
     @OneToMany(mappedBy = "app", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<Group> groups = new ArrayList<>();
@@ -50,5 +52,25 @@ public class App {
 
     public void setIconUrl(String iconUrl) {
         this.iconUrl = iconUrl;
+    }
+
+    public String getStoragePath() {
+        return storagePath;
+    }
+
+    public void setStoragePath(String storagePath) {
+        if (storagePath.endsWith("/")) {
+            this.storagePath = storagePath;
+        } else {
+            this.storagePath = storagePath + "/";
+        }
+    }
+
+    public List<Group> getGroups() {
+        return groups;
+    }
+
+    public void setGroups(List<Group> groups) {
+        this.groups = groups;
     }
 }

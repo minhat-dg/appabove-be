@@ -31,8 +31,8 @@ public class BunnyStorageService {
     /**
      * Upload a file to BunnyCDN
      */
-    public void uploadFile(String fileName, File file) throws IOException {
-        String url = String.format("https://%s/%s/%s", bunnyEndPoint, bunnyStorageZone, fileName);
+    public void uploadFile(String filePath, File file) throws IOException {
+        String url = String.format("https://%s/%s/%s", bunnyEndPoint, bunnyStorageZone, filePath);
 
         HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
         conn.setRequestMethod("PUT");
@@ -40,8 +40,10 @@ public class BunnyStorageService {
         conn.setRequestProperty("AccessKey", bunnyAccessKey);
         conn.setRequestProperty("Content-Type", "application/octet-stream");
 
-        try (OutputStream os = conn.getOutputStream(); FileInputStream fis = new FileInputStream(file)) {
-            fis.transferTo(os); // Stream trực tiếp lên BunnyCDN
+        if (file != null) {
+            try (OutputStream os = conn.getOutputStream(); FileInputStream fis = new FileInputStream(file)) {
+                fis.transferTo(os); // Stream trực tiếp lên BunnyCDN
+            }
         }
 
         int responseCode = conn.getResponseCode();
@@ -66,17 +68,17 @@ public class BunnyStorageService {
     /**
      * Get public URL of a file stored in BunnyCDN
      */
-    public String getPublicUrl(String fileName) {
-        return String.format("https://%s/%s", bunnyHostName, fileName);
+    public String getPublicUrl(String filePath) {
+        return String.format("https://%s/%s", bunnyHostName, filePath);
     }
 
-    public GetUploadUrlResponse getUploadInfo(String fileName, String id) throws IOException {
-        String url = String.format("https://%s/%s/%s", bunnyEndPoint, bunnyStorageZone, fileName);
+    public GetUploadUrlResponse getUploadInfo(String filePath, String id) throws IOException {
+        String url = String.format("https://%s/%s/%s", bunnyEndPoint, bunnyStorageZone, filePath);
         return new GetUploadUrlResponse(url, bunnyAccessKey, id);
     }
 
-    public void deleteFile(String path) throws IOException {
-        String url = String.format("https://%s/%s", bunnyEndPoint, path);
+    public void deleteFile(String filePath) throws IOException {
+        String url = String.format("https://%s/%s/%s", bunnyEndPoint, bunnyStorageZone, filePath);
 
         HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
         conn.setRequestMethod("DELETE");
@@ -88,6 +90,5 @@ public class BunnyStorageService {
             throw new IOException("Delete failed: HTTP " + responseCode + "\n" + error);
         }
     }
-
 }
 

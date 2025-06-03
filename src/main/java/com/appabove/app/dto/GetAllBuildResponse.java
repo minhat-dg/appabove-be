@@ -1,19 +1,19 @@
 package com.appabove.app.dto;
 
-import com.appabove.app.model.UploadedFile;
+import com.appabove.app.model.Build;
 
 import java.util.List;
 
-public class GetAllFilesResponse {
-    private List<UploadedFile> files;
+public class GetAllBuildResponse {
+    private List<Build> files;
     private String groupName;
     private String appIconUrl;
 
-    public List<UploadedFile> getFiles() {
+    public List<Build> getFiles() {
         return files;
     }
 
-    public void setFiles(List<UploadedFile> files) {
+    public void setFiles(List<Build> files) {
         this.files = files;
     }
 

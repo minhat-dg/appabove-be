@@ -17,6 +17,8 @@ public class Group {
     @Column(name = "group_name")
     private String groupName;
 
+    private String storagePath;
+
     @ManyToOne
     @JsonBackReference
     @JoinColumn(name = "app_id")
@@ -24,7 +26,7 @@ public class Group {
 
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
-    private List<UploadedFile> files = new ArrayList<>();
+    private List<Build> files = new ArrayList<>();
 
     public Group() {
     }
@@ -57,5 +59,25 @@ public class Group {
 
     public void setApp(App app) {
         this.app = app;
+    }
+
+    public String getStoragePath() {
+        return storagePath;
+    }
+
+    public void setStoragePath(String storagePath) {
+        if (storagePath.endsWith("/")) {
+            this.storagePath = storagePath;
+        } else {
+            this.storagePath = storagePath + "/";
+        }
+    }
+
+    public List<Build> getFiles() {
+        return files;
+    }
+
+    public void setFiles(List<Build> files) {
+        this.files = files;
     }
 }
