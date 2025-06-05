@@ -1,4 +1,4 @@
-package com.appabove.app.dto;
+package com.appabove.app.dto.request;
 
 public class FinalizeUploadRequest {
     private String id;

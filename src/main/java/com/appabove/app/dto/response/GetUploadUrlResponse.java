@@ -1,4 +1,4 @@
-package com.appabove.app.dto;
+package com.appabove.app.dto.response;
 
 public class GetUploadUrlResponse {
     private String uploadUrl;

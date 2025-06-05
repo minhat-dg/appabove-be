@@ -1,19 +1,23 @@
 package com.appabove.app.controller;
 
-import com.appabove.app.dto.BaseResponse;
-import com.appabove.app.dto.CreateAppRequest;
-import com.appabove.app.model.App;
+import com.appabove.app.dto.request.BodyIdRequest;
+import com.appabove.app.dto.request.CreateAppRequest;
+import com.appabove.app.dto.response.BaseResponse;
+import com.appabove.app.dto.response.AppResponse;
 import com.appabove.app.service.AppService;
 import com.appabove.app.service.MessageService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.util.List;
 
 @RestController
-@RequestMapping("/apps")
+@RequestMapping("/api/v1/apps")
 public class AppController {
     private final AppService appService;
 
@@ -24,21 +28,29 @@ public class AppController {
         this.messageService = messageService;
     }
 
-    @PostMapping
-    public ResponseEntity<BaseResponse<App>> createApp(@RequestBody CreateAppRequest request) throws IOException {
-        App app = appService.createApp(request);
-        return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.success(messageService.get("successfully"), app));
+    @PostMapping("/create")
+    public ResponseEntity<?> createApp(@RequestBody CreateAppRequest request,  Authentication authentication) throws IOException {
+        String userId = (String) authentication.getPrincipal();
+        AppResponse app = appService.createApp(request, userId);
+        return ResponseEntity.ok(BaseResponse.success(messageService.get("successfully"), app));
     }
 
-    @GetMapping
-    public ResponseEntity<BaseResponse<List<App>>> getAllApps() {
-        List<App> apps = appService.getAllApps();
-        return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.success(messageService.get("successfully"), apps));
+    @PostMapping("/get-all")
+    public ResponseEntity<?> getAllApps(Authentication authentication) {
+        String userId = (String) authentication.getPrincipal();
+        List<AppResponse> apps = appService.getAppsByUserId(userId);
+        return ResponseEntity.ok(BaseResponse.success(messageService.get("successfully"), apps));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<BaseResponse<Void>> deleteApp(@PathVariable String id) throws IOException {
-        appService.deleteAppById(id);
-        return ResponseEntity.status(HttpStatus.OK).body(BaseResponse.success(messageService.get("successfully")));
+    @PostMapping("/get-by-id")
+    public ResponseEntity<?> getByAppId(@RequestBody BodyIdRequest request) throws IOException {
+        AppResponse app = appService.getApp(request.getId());
+        return ResponseEntity.ok(BaseResponse.success(messageService.get("successfully"), app));
+    }
+
+    @PostMapping("/delete")
+    public ResponseEntity<?> deleteApp(@RequestBody BodyIdRequest request) throws IOException {
+        appService.deleteAppById(request.getId());
+        return ResponseEntity.ok(BaseResponse.success(messageService.get("successfully")));
     }
 }

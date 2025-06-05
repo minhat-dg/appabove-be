@@ -1,4 +1,4 @@
-package com.appabove.app.dto;
+package com.appabove.app.dto.response;
 
 import com.appabove.app.model.Group;
 

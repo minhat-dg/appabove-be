@@ -1,12 +1,14 @@
 package com.appabove.app.model;
 
+import com.appabove.app.dto.response.GroupResponse;
+import com.appabove.app.utils.DateTimeUtils;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "app_group", uniqueConstraints = {@UniqueConstraint(columnNames = {"app_id", "group_name"})})
@@ -26,15 +28,23 @@ public class Group {
 
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
-    private List<Build> files = new ArrayList<>();
+    private List<Build> builds = new ArrayList<>();
+
+    private LocalDateTime createdAt;
 
     public Group() {
     }
 
-    public Group(String groupName, App app) {
-        this.groupId = UUID.randomUUID().toString();
+    public Group(String groupId, String groupName, String storagePath, App app, LocalDateTime createdAt) {
+        this.groupId = groupId;
         this.groupName = groupName;
+        this.storagePath = storagePath;
         this.app = app;
+        this.createdAt = createdAt;
+    }
+
+    public GroupResponse toGroupResponse() {
+        return new GroupResponse(groupId, groupName, app.getAppId(), DateTimeUtils.formatDateTime(createdAt), getAndroidBuildCount(), getIosBuildCount());
     }
 
     public String getGroupId() {
@@ -62,7 +72,11 @@ public class Group {
     }
 
     public String getStoragePath() {
-        return storagePath;
+        if (storagePath.endsWith("/")) {
+            return storagePath;
+        } else {
+            return storagePath + "/";
+        }
     }
 
     public void setStoragePath(String storagePath) {
@@ -73,11 +87,27 @@ public class Group {
         }
     }
 
-    public List<Build> getFiles() {
-        return files;
+    public List<Build> getBuilds() {
+        return builds;
     }
 
-    public void setFiles(List<Build> files) {
-        this.files = files;
+    public void setBuilds(List<Build> builds) {
+        this.builds = builds;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public int getAndroidBuildCount() {
+        return (int) builds.stream().filter(build -> "android".equalsIgnoreCase(build.getPlatform())).filter(build -> build.getUploadedAt() != null).count();
+    }
+
+    public int getIosBuildCount() {
+        return (int) builds.stream().filter(build -> "ios".equalsIgnoreCase(build.getPlatform())).filter(build -> build.getUploadedAt() != null).count();
     }
 }

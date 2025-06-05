@@ -1,20 +1,21 @@
-package com.appabove.app.dto;
+package com.appabove.app.dto.response;
 
 import com.appabove.app.model.Build;
 
 import java.util.List;
 
 public class GetAllBuildResponse {
-    private List<Build> files;
+    private List<BuildResponse> builds;
     private String groupName;
+    private String appName;
     private String appIconUrl;
 
-    public List<Build> getFiles() {
-        return files;
+    public List<BuildResponse> getBuilds() {
+        return builds;
     }
 
-    public void setFiles(List<Build> files) {
-        this.files = files;
+    public void setBuilds(List<BuildResponse> builds) {
+        this.builds = builds;
     }
 
     public String getGroupName() {
@@ -23,6 +24,14 @@ public class GetAllBuildResponse {
 
     public void setGroupName(String groupName) {
         this.groupName = groupName;
+    }
+
+    public String getAppName() {
+        return appName;
+    }
+
+    public void setAppName(String appName) {
+        this.appName = appName;
     }
 
     public String getAppIconUrl() {

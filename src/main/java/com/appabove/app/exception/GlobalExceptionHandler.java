@@ -1,14 +1,16 @@
 package com.appabove.app.exception;
 
-import com.appabove.app.dto.BaseResponse;
+import com.appabove.app.dto.response.BaseResponse;
 import com.appabove.app.service.MessageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -22,8 +24,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<BaseResponse<Void>> handleRuntimeException(RuntimeException ex) {
         log.error("Unhandled exception occurred", ex);
-        BaseResponse<Void> response = new BaseResponse<>(400, ex.getMessage());
-        return ResponseEntity.badRequest().body(response);
+        BaseResponse<Void> response = BaseResponse.error(ex.getMessage());
+        return ResponseEntity.ok(response);
     }
 
     @ExceptionHandler(Exception.class)

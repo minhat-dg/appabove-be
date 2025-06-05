@@ -1,5 +1,6 @@
 package com.appabove.app.utils;
 
+import com.appabove.app.dto.UploadResult;
 import net.dongliu.apk.parser.ApkFile;
 import net.dongliu.apk.parser.bean.Icon;
 
@@ -36,14 +37,16 @@ public class ApkUtils {
         }
     }
 
-    public static String getAppVersion(File file) throws IOException {
+    public static UploadResult getApkInfo(File file) throws IOException {
         try (ApkFile apkFile = new ApkFile(file)) {
             String versionName = apkFile.getApkMeta().getVersionName();
             Long versionCode = apkFile.getApkMeta().getVersionCode();
-            return String.format("%s (%d)", versionName, versionCode);
+            String version = String.format("%s (%d)", versionName, versionCode);
+            String appName = apkFile.getApkMeta().getName();
+            String packageName = apkFile.getApkMeta().getPackageName();
+            return new UploadResult("", packageName, appName, version);
         } catch (IOException e) {
-            e.printStackTrace();
-            return null;
+            throw new IOException("Error while reading APK file", e);
         }
     }
 }

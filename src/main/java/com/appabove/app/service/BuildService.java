@@ -1,7 +1,9 @@
 package com.appabove.app.service;
 
-import com.appabove.app.dto.GetUploadUrlResponse;
 import com.appabove.app.dto.UploadResult;
+import com.appabove.app.dto.response.BuildResponse;
+import com.appabove.app.dto.response.GetAllBuildResponse;
+import com.appabove.app.dto.response.GetUploadUrlResponse;
 import com.appabove.app.model.Build;
 import com.appabove.app.model.Group;
 import com.appabove.app.repository.AppRepository;
@@ -18,10 +20,12 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class BuildService {
@@ -89,67 +93,63 @@ public class BuildService {
         Group group = groupRepository.findById(groupId).orElseThrow(() -> new RuntimeException(messageService.get("group.not.found")));
 
         String id = UUID.randomUUID().toString();
-        Build uploaded = new Build();
-        uploaded.setId(id);
-        uploaded.setFileName(fileName);
-        uploaded.setGroup(group);
-        String fileType = FilenameUtils.getExtension(fileName).toLowerCase(Locale.ROOT);
         String storagePath = group.getStoragePath() + id;
-        uploaded.setStoragePath(storagePath);
-        String downloadUrl = bunnyStorageService.getPublicUrl(uploaded.getStoragePath() + fileName);
-        uploaded.setFileType(fileType);
-        uploaded.setDownloadUrl(downloadUrl);
+        String fileType = FilenameUtils.getExtension(fileName).toLowerCase(Locale.ROOT);
+        Build uploaded = new Build(id, fileName, storagePath, 0, fileType.equalsIgnoreCase("apk") ? "android" : "ios", group);
+        String fileUrl = bunnyStorageService.getPublicUrl(uploaded.getStoragePath() + fileName);
+        uploaded.setFileUrl(fileUrl);
         buildRepository.save(uploaded);
         return bunnyStorageService.getUploadInfo(uploaded.getStoragePath() + fileName, id);
     }
 
-    public Build getFileMetaData(String id) throws IOException {
-        Build file = buildRepository.findById(id).orElseThrow(() -> new RuntimeException(messageService.get("file.not.found")));
-        File downloadFile = FileUtils.downloadFile(file.getDownloadUrl());
+    public BuildResponse getFileMetaData(String id) throws IOException {
+        Build build = buildRepository.findById(id).orElseThrow(() -> new RuntimeException(messageService.get("file.not.found")));
         try {
-            file.setSize(downloadFile.length());
-            file.setUploadTime(LocalDateTime.now());
-            UploadResult result;
-            switch (file.getFileType()) {
-                case "ipa":
-                    result = getIpaInfo(downloadFile, file);
-                    break;
-                case "apk":
-                    result = getApkInfo(downloadFile, file);
-                    break;
-                default:
-                    throw new RuntimeException(messageService.get("file.type.unsupported"));
-            }
-            file.setDownloadUrl(result.downloadUrl());
-            file.setVersion(result.version());
+            File downloadFile = FileUtils.downloadFile(build.getFileUrl());
+            try {
+                build.setSize(downloadFile.length());
+                build.setUploadedAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
+                UploadResult result;
+                switch (build.getPlatform()) {
+                    case "ios":
+                        result = getIpaInfo(downloadFile, build);
+                        break;
+                    case "android":
+                        result = ApkUtils.getApkInfo(downloadFile);
+                        break;
+                    default:
+                        throw new RuntimeException(messageService.get("file.type.unsupported"));
+                }
+                build.setPlistUrl(result.plistUrl());
+                build.setVersion(result.version());
+                build.setPackageName(result.packageName());
+                build.setAppName(result.appName());
 
-            String iconUrl = file.getGroup().getApp().getIconUrl();
-            if ((iconUrl == null || iconUrl.isBlank()) && "apk".equalsIgnoreCase(file.getFileType())) {
-                saveAppIcon(downloadFile, file.getGroup());
+                String iconUrl = build.getGroup().getApp().getIconUrl();
+                if ((iconUrl == null || iconUrl.isBlank()) && "android".equalsIgnoreCase(build.getPlatform())) {
+                    saveAppIcon(downloadFile, build.getGroup());
+                }
+            } finally {
+                downloadFile.delete();
             }
-        } finally {
-            downloadFile.delete();
+        } catch (Exception e) {
+            buildRepository.delete(build);
+            throw new RuntimeException("Upload failed!");
         }
-        return buildRepository.save(file);
+        return buildRepository.save(build).toBuildResponse();
     }
 
-    private UploadResult getApkInfo(File apkFile, Build file) throws IOException {
-        String downloadUrl, version;
-        Map<String, String> metadata = IpaUtils.extractIpaMetadata(apkFile);
-        version = metadata.get("version");
-        downloadUrl = file.getDownloadUrl();
-        return new UploadResult(downloadUrl, version);
-    }
-
-    private UploadResult getIpaInfo(File ipaFile, Build file) throws IOException {
-        String downloadUrl, version;
+    private UploadResult getIpaInfo(File ipaFile, Build build) throws IOException {
+        String version, packageName, appName;
         Map<String, String> metadata = IpaUtils.extractIpaMetadata(ipaFile);
         version = metadata.get("version");
+        packageName = metadata.get("bundle_id");
+        appName = metadata.get("title");
 
         // Tạo manifest plist file
-        String plistFilePath = file.getStoragePath() + file.getId() + ".plist";
+        String plistFilePath = build.getStoragePath() + build.getId() + ".plist";
         String plistUrl = bunnyStorageService.getPublicUrl(plistFilePath);
-        String plistContent = IpaUtils.generatePlistContent(file.getDownloadUrl(), metadata);
+        String plistContent = IpaUtils.generatePlistContent(build.getFileUrl(), metadata);
         File plistFile = FileUtils.writeStringToFile(plistContent);
         try {
             bunnyStorageService.uploadFile(plistFilePath, plistFile);
@@ -157,8 +157,8 @@ public class BuildService {
             plistFile.delete();
         }
 
-        downloadUrl = "itms-services://?action=download-manifest&url=" + plistUrl;
-        return new UploadResult(downloadUrl, version);
+        String downloadUrl = "itms-services://?action=download-manifest&url=" + plistUrl;
+        return new UploadResult(downloadUrl, packageName, appName, version);
     }
 
 //    private UploadResult handleIpaUpload(MultipartFile file, String fileName, String id) throws IOException {
@@ -223,8 +223,15 @@ public class BuildService {
         }
     }
 
-    public List<Build> getBuildsByGroupId(String groupId) {
-        return buildRepository.findByGroup_GroupId(groupId, Sort.by(Sort.Direction.DESC, "uploadTime"));
+    public GetAllBuildResponse getBuildsByPlatform(String groupId, String platform) {
+        List<BuildResponse> builds = buildRepository.findByGroup_GroupIdAndUploadedAtIsNotNull(groupId, Sort.by(Sort.Direction.DESC, "uploadedAt")).stream().filter(build -> platform.equalsIgnoreCase(build.getPlatform())).map(Build::toBuildResponse).collect(Collectors.toList());
+        Group group = groupRepository.findById(groupId).orElseThrow(() -> new RuntimeException(messageService.get("group.not.found")));
+        GetAllBuildResponse response = new GetAllBuildResponse();
+        response.setBuilds(builds);
+        response.setGroupName(group.getGroupName());
+        response.setAppName(group.getApp().getAppName());
+        response.setAppIconUrl(group.getApp().getIconUrl());
+        return response;
     }
 
     public Build getBuildById(String id) {

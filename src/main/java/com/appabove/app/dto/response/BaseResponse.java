@@ -1,4 +1,4 @@
-package com.appabove.app.dto;
+package com.appabove.app.dto.response;
 
 public class BaseResponse<T> {
     private int code;
@@ -20,11 +20,15 @@ public class BaseResponse<T> {
     }
 
     public static <T> BaseResponse<T> success(String message, T data) {
-        return new BaseResponse<>(200, message, data);
+        return new BaseResponse<>(0, message, data);
     }
 
     public static <T> BaseResponse<T> success(String message) {
-        return new BaseResponse<>(200, message);
+        return new BaseResponse<>(0, message);
+    }
+
+    public static <T> BaseResponse<T> error(String message) {
+        return new BaseResponse<>(1, message);
     }
 
     // getters & setters

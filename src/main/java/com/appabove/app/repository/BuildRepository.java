@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface BuildRepository extends JpaRepository<Build, String> {
-    List<Build> findByGroup_GroupId(String groupId, Sort sort);
+    List<Build> findByGroup_GroupIdAndUploadedAtIsNotNull(String groupId, Sort sort);
 }

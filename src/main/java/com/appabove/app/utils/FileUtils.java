@@ -32,7 +32,6 @@ public class FileUtils {
     }
 
     public static File downloadFile(String fileUrl) throws IOException {
-        // Tạo file tạm thời với phần mở rộng như ".ipa"
         File tempFile = Files.createTempFile("download-", "temp").toFile();
 
         try (InputStream in = new URL(fileUrl).openStream(); OutputStream out = new FileOutputStream(tempFile)) {

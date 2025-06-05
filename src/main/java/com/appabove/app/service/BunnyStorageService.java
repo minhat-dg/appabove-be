@@ -1,6 +1,6 @@
 package com.appabove.app.service;
 
-import com.appabove.app.dto.GetUploadUrlResponse;
+import com.appabove.app.dto.response.GetUploadUrlResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -85,7 +85,7 @@ public class BunnyStorageService {
         conn.setRequestProperty("AccessKey", bunnyAccessKey);
 
         int responseCode = conn.getResponseCode();
-        if (responseCode != 200 && responseCode != 204) {
+        if (responseCode != 200 && responseCode != 204 && responseCode != 404) {
             String error = new String(conn.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
             throw new IOException("Delete failed: HTTP " + responseCode + "\n" + error);
         }

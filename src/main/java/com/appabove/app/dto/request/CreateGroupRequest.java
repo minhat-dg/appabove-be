@@ -1,15 +1,15 @@
-package com.appabove.app.dto;
+package com.appabove.app.dto.request;
 
 public class CreateGroupRequest {
-    private String groupName;
+    private String name;
     private String appId;
 
-    public String getGroupName() {
-        return groupName;
+    public String getName() {
+        return name;
     }
 
-    public void setGroupName(String groupName) {
-        this.groupName = groupName;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getAppId() {
