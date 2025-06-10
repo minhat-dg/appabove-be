@@ -7,4 +7,4 @@ RUN mvn clean package -DskipTests
 # Run
 FROM openjdk:17-jdk-slim
 COPY --from=build /app/target/springboot-app-0.0.1-SNAPSHOT.jar app.jar
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app.jar"]
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]
