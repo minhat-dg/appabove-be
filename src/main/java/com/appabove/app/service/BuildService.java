@@ -15,10 +15,12 @@ import com.appabove.app.utils.IpaUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -89,17 +91,39 @@ public class BuildService {
 //        return fileUploadRepository.save(uploaded);
 //    }
 
-    public GetUploadUrlResponse getUploadUrl(String fileName, String groupId) throws IOException {
-        Group group = groupRepository.findById(groupId).orElseThrow(() -> new RuntimeException(messageService.get("group.not.found")));
+    public GetUploadUrlResponse getUploadUrl(MultipartFile file, String groupId) throws IOException {
+        File buildFile = File.createTempFile("upload-", null);
+        file.transferTo(buildFile);
+        try {
+            Group group = groupRepository.findById(groupId).orElseThrow(() -> new RuntimeException(messageService.get("group.not.found")));
+            String fileName = file.getOriginalFilename();
+            String id = UUID.randomUUID().toString();
+            String storagePath = group.getStoragePath() + id;
+            String fileType = FilenameUtils.getExtension(file.getOriginalFilename()).toLowerCase(Locale.ROOT);
+            Build uploaded = new Build(id, fileName, storagePath, 0, fileType.equalsIgnoreCase("apk") ? "android" : "ios", group);
+            String fileUrl = bunnyStorageService.getPublicUrl(uploaded.getStoragePath() + fileName);
+            uploaded.setFileUrl(fileUrl);
+            uploaded.setSize(buildFile.length());
+            uploaded.setUploadedAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
+            UploadResult result = switch (uploaded.getPlatform()) {
+                case "ios" -> getIpaInfo(buildFile, uploaded);
+                case "android" -> ApkUtils.getApkInfo(buildFile);
+                default -> throw new RuntimeException(messageService.get("file.type.unsupported"));
+            };
+            uploaded.setPlistUrl(result.plistUrl());
+            uploaded.setVersion(result.version());
+            uploaded.setPackageName(result.packageName());
+            uploaded.setAppName(result.appName());
 
-        String id = UUID.randomUUID().toString();
-        String storagePath = group.getStoragePath() + id;
-        String fileType = FilenameUtils.getExtension(fileName).toLowerCase(Locale.ROOT);
-        Build uploaded = new Build(id, fileName, storagePath, 0, fileType.equalsIgnoreCase("apk") ? "android" : "ios", group);
-        String fileUrl = bunnyStorageService.getPublicUrl(uploaded.getStoragePath() + fileName);
-        uploaded.setFileUrl(fileUrl);
-        buildRepository.save(uploaded);
-        return bunnyStorageService.getUploadInfo(uploaded.getStoragePath() + fileName, id);
+            String iconUrl = uploaded.getGroup().getApp().getIconUrl();
+            if ((iconUrl == null || iconUrl.isBlank()) && "android".equalsIgnoreCase(uploaded.getPlatform())) {
+                saveAppIcon(buildFile, uploaded.getGroup());
+            }
+            buildRepository.save(uploaded);
+            return bunnyStorageService.getUploadInfo(uploaded.getStoragePath() + fileName, id);
+        } finally {
+            Files.deleteIfExists(buildFile.toPath());
+        }
     }
 
     public BuildResponse getFileMetaData(String id) throws IOException {

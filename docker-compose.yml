@@ -6,6 +6,8 @@ services:
       MYSQL_ROOT_PASSWORD: La@123465
     ports:
       - "3407:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql  # ✅ volume để lưu trữ dữ liệu
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
@@ -31,3 +33,6 @@ services:
 #        condition: service_healthy
 #    env_file:
 #      - .env
+
+volumes:
+  mysql_data:   # ✅ Khai báo volume dùng để mount database

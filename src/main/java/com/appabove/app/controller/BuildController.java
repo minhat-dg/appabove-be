@@ -13,6 +13,7 @@ import com.appabove.app.service.GroupService;
 import com.appabove.app.service.MessageService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
@@ -46,8 +47,9 @@ public class BuildController {
     }
 
     @PostMapping("/get-upload-url")
-    public ResponseEntity<?> getUploadUrl(@RequestBody GetUploadUrlRequest request) throws IOException {
-        GetUploadUrlResponse response = buildService.getUploadUrl(request.getFileName(), request.getGroupId());
+    public ResponseEntity<?> getUploadUrl(@RequestParam("file") MultipartFile file,
+                                              @RequestParam("groupId") String groupId) throws IOException {
+        GetUploadUrlResponse response = buildService.getUploadUrl(file, groupId);
         return ResponseEntity.ok(BaseResponse.success(messageService.get("successfully"), response));
     }
 
