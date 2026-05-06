@@ -1,0 +1,8 @@
+//Restore DB
+docker exec -i appabove-be-db-1 \
+  mysql -u root -pLa@123465 appabovedb < backup.sql
+
+//Backup DB
+docker exec appabove-be-db-1 \
+  sh -c 'exec mysqldump -u root -pLa@123465 --all-databases' \
+  > backup.sql
